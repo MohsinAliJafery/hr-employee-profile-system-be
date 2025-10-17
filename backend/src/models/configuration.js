@@ -4,7 +4,13 @@ import sequelize from '../config/db.js';
 const configuration = sequelize.define(
   'configuration',
   {
-    configId: { type: DataTypes.INTEGER, allowNull: false, primaryKey: true },
+    configId: {
+      type: DataTypes.INTEGER,
+      autoIncrement: true,
+      allowNull: false,
+      primaryKey: true,
+    },
+    counter: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
     organizationName: { type: DataTypes.STRING, allowNull: false },
     address: { type: DataTypes.STRING, allowNull: false },
     phone: { type: DataTypes.STRING },
@@ -14,7 +20,12 @@ const configuration = sequelize.define(
     u_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      primaryKey: true,
+      references: {
+        model: 'users',
+        key: 'u_id',
+      },
+      onUpdate: 'CASCADE',
+      onDelete: 'CASCADE',
     },
     isActive: { type: DataTypes.TINYINT, allowNull: false, defaultValue: 1 },
     isDeleted: { type: DataTypes.TINYINT, allowNull: false, defaultValue: 0 },

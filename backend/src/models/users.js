@@ -41,6 +41,11 @@ const User = sequelize.define(
       // 👈 Foreign Key column
       type: DataTypes.INTEGER,
       allowNull: true,
+      references: {
+        model: 'roles',
+        key: 'role_id',
+      },
+      onUpdate: 'CASCADE',
     },
   },
   {

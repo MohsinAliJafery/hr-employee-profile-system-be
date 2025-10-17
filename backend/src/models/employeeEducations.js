@@ -4,15 +4,24 @@ import { DataTypes } from 'sequelize';
 const EmployeeEducations = sequelize.define('EmployeeEducations', {
   employeeEducationId: {
     type: DataTypes.INTEGER,
+    autoIncrement: true,
     primaryKey: true,
     allowNull: false,
   },
-  u_id: { type: DataTypes.INTEGER, primaryKey: true, allowNull: false },
+  u_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: {
+      model: 'users',
+      key: 'u_id',
+    },
+    onUpdate: 'CASCADE',
+  },
   employeeId: {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Employees',
+      model: 'employees',
       key: 'employeeId',
     },
     onUpdate: 'CASCADE',
@@ -21,11 +30,12 @@ const EmployeeEducations = sequelize.define('EmployeeEducations', {
     type: DataTypes.INTEGER,
     allowNull: false,
     references: {
-      model: 'Documents',
+      model: 'documents',
       key: 'documentId',
     },
     onUpdate: 'CASCADE',
   },
+  counter: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
   isActive: { type: DataTypes.TINYINT, allowNull: false, defaultValue: 1 },
   isDeleted: { type: DataTypes.TINYINT, allowNull: false, defaultValue: 0 },
 });
