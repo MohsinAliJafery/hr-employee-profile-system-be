@@ -11,10 +11,23 @@ const configuration = sequelize.define(
       primaryKey: true,
     },
     counter: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 1 },
+    firstName: { type: DataTypes.STRING },
+    middleName: { type: DataTypes.STRING },
+    lastName: { type: DataTypes.STRING },
+    fullName: {
+      type: DataTypes.VIRTUAL,
+      get() {
+        const first = this.getDataValue('firstName') || '';
+        const middle = this.getDataValue('middleName') || '';
+        const last = this.getDataValue('lastName') || '';
+        return [first, middle, last].filter(Boolean).join(' ');
+      },
+    },
     organizationName: { type: DataTypes.STRING, allowNull: false },
     address: { type: DataTypes.STRING, allowNull: false },
     phone: { type: DataTypes.STRING },
     email: { type: DataTypes.STRING },
+    mobileNumber: { type: DataTypes.STRING },
     website: { type: DataTypes.STRING },
     logo: { type: DataTypes.STRING },
     u_id: {
