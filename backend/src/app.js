@@ -4,8 +4,7 @@ import morgan from 'morgan';
 import sequelize from './config/db.js';
 import dotenv from 'dotenv';
 import './models/index.js';
-import getNextUserCounterId from './helpers/getNextUserCounter.js';
-import { Departments } from './models/index.js';
+import authRouter from './routes/authenicationRouter.js';
 
 dotenv.config();
 const app = express();
@@ -13,6 +12,8 @@ const app = express();
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
+
+app.use('/api/auth', authRouter);
 
 (async () => {
   try {
