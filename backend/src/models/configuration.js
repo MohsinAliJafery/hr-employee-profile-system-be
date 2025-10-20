@@ -24,7 +24,24 @@ const configuration = sequelize.define(
       },
     },
     organizationName: { type: DataTypes.STRING, allowNull: false },
-    address: { type: DataTypes.STRING, allowNull: false },
+    organizationId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'organizationTypes',
+        key: 'organizationId',
+      },
+      onUpdate: 'CASCADE',
+    },
+    addressId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'addresses',
+        key: 'addressId',
+      },
+      onUpdate: 'CASCADE',
+    },
     phone: { type: DataTypes.STRING },
     email: { type: DataTypes.STRING },
     mobileNumber: { type: DataTypes.STRING },

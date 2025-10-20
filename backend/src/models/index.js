@@ -15,6 +15,10 @@ import ResidencyDocuments from './residency_documents.js';
 import EmployeeEducations from './employeeEducations.js';
 import Desiginations from './desiginations.js';
 import EmployeeJobs from './employeeJobs.js';
+import countries from './countries.js';
+import cities from './cities.js';
+import organizationTypes from './organizationType.js';
+import addresses from './addresses.js';
 
 User.belongsTo(Roles, {
   foreignKey: 'role_id',
@@ -22,7 +26,12 @@ User.belongsTo(Roles, {
 
 User.hasOne(configuration, { foreignKey: 'u_id' });
 Roles.hasMany(User, { foreignKey: 'role_id' });
+
 configuration.belongsTo(User, { foreignKey: 'u_id' });
+User.hasOne(configuration, { foreignKey: 'u_id' });
+
+configuration.belongsTo(addresses, { foreignKey: 'addressId' });
+addresses.hasOne(configuration, { foreignKey: 'addressId' });
 User.hasMany(Titles, { foreignKey: 'u_id' });
 Titles.belongsTo(User, { foreignKey: 'u_id' });
 User.hasMany(Departments, { foreignKey: 'u_id' });
@@ -40,6 +49,10 @@ nationalities.belongsTo(User, { foreignKey: 'u_id' });
 User.hasMany(Employees, { foreignKey: 'u_id' });
 Employees.belongsTo(User, { foreignKey: 'u_id' });
 Employees.belongsTo(nationalities, { foreignKey: 'nationalityId' });
+
+Employees.belongsTo(addresses, { foreignKey: 'addressId' });
+addresses.hasMany(Employees, { foreignKey: 'addressId' });
+
 nationalities.hasMany(Employees, { foreignKey: 'nationalityId' });
 Employees.belongsTo(Titles, { foreignKey: 'titleId' });
 Titles.hasMany(Employees, { foreignKey: 'titleId' });
@@ -105,6 +118,30 @@ EmployeeJobs.belongsTo(Desiginations, { foreignKey: 'desiginationId' });
 Employees.hasMany(EmployeeJobs, { foreignKey: 'employeeId' });
 EmployeeJobs.belongsTo(Employees, { foreignKey: 'employeeId' });
 
+//coutries associations
+countries.belongsTo(User, { foreignKey: 'u_id' });
+User.hasMany(countries, { foreignKey: 'u_id' });
+
+//cities
+cities.belongsTo(countries, { foreignKey: 'countryId' });
+countries.hasMany(cities, { foreignKey: 'countryId' });
+cities.belongsTo(User, { foreignKey: 'u_id' });
+User.hasMany(cities, { foreignKey: 'u_id' });
+
+//organization types
+User.hasMany(organizationTypes, { foreignKey: 'u_id' });
+organizationTypes.belongsTo(User, { foreignKey: 'u_id' });
+configuration.belongsTo(organizationTypes, { foreignKey: 'organizationId' });
+organizationTypes.hasMany(configuration, { foreignKey: 'organizationId' });
+
+//addresses
+User.hasMany(addresses, { foreignKey: 'u_id' });
+addresses.belongsTo(User, { foreignKey: 'u_id' });
+addresses.belongsTo(countries, { foreignKey: 'countryId' });
+countries.hasMany(addresses, { foreignKey: 'countryId' });
+cities.hasMany(addresses, { foreignKey: 'cityId' });
+addresses.belongsTo(cities, { foreignKey: 'cityId' });
+
 export {
   sequelize,
   User,
@@ -123,4 +160,8 @@ export {
   Desiginations,
   ResidencyStatus,
   EmployeeJobs,
+  countries,
+  cities,
+  organizationTypes,
+  addresses,
 };

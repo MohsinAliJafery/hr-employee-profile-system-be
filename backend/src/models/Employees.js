@@ -23,7 +23,15 @@ const Employees = sequelize.define(
     },
     emailId: { type: DataTypes.STRING },
     phone: { type: DataTypes.STRING },
-    address: { type: DataTypes.STRING },
+    addressId: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: {
+        model: 'addresses',
+        key: 'addressId',
+      },
+      onUpdate: 'CASCADE',
+    },
     dob: { type: DataTypes.DATE },
     emergencyContact: { type: DataTypes.STRING },
     u_id: {
