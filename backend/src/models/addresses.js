@@ -14,7 +14,6 @@ const addresses = sequelize.define(
     addressLineTwo: { type: DataTypes.STRING },
     countryId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       references: {
         model: 'countries',
         key: 'countryId',
@@ -23,7 +22,6 @@ const addresses = sequelize.define(
     },
     cityId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
       references: {
         model: 'cities',
         key: 'cityId',
