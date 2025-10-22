@@ -1,14 +1,33 @@
+import { useState } from 'react';
+import { POST } from '../../api-calls/apiFunctions.js';
+
 const Login = () => {
-  const handleFormSubmit = (e) => {
+  const [errors, setErrors] = useState([]);
+
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
-    console.log('Form Submitted.');
+    setErrors([]);
     const form = new FormData(e.target);
     const email = form.get('email');
     const password = form.get('password');
-    console.log('Email: ', email);
-    console.log('Password: ', password);
-
-    //Here we call custom hook to submit data to backend by API.
+    const body = { email, password };
+    try {
+      const response = await POST('/auth/login', body);
+      console.log(response);
+      console.log('user id ', response.data.user.u_id);
+      localStorage.setItem('token', response.data.token);
+      localStorage.setItem('u_id', response.data.user.u_id);
+    } catch (error) {
+      console.log(error);
+      if (error.response && error.response.status === 400) {
+        // backend returns { messages: [] }
+        setErrors(error.response.data.messages);
+      } else if (error.response && error.response.status === 500) {
+        setErrors(error.response.data.messages); // will include actual error message
+      } else {
+        setErrors(['Something went wrong.']);
+      }
+    }
   };
   return (
     <>
@@ -16,6 +35,13 @@ const Login = () => {
         onSubmit={handleFormSubmit}
         className="flex flex-col items-center gap-4 w-full"
       >
+        {errors?.length > 0 && (
+          <ul style={{ color: 'red', marginTop: '10px' }}>
+            {errors.map((err, i) => (
+              <li key={i}>{err.replace(/"/g, '')}</li> // remove Joi quotes
+            ))}
+          </ul>
+        )}
         <div className="flex flex-col gap-2 w-3/4">
           <input
             type="email"

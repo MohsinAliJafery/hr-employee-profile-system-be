@@ -1,41 +1,67 @@
-const Signup = () => {
-  const handleSignUpSubmit = (e) => {
-    e.preventDefault();
-    console.log('Sign Up Form Submitted.');
-    const formData = new FormData(e.target);
-    const firstName = formData.get('firstName');
-    const middleName = formData.get('middleName');
-    const lastName = formData.get('lastName');
-    const companyName = formData.get('companyName');
-    const email = formData.get('email');
-    const website = formData.get('website');
-    const password = formData.get('password');
-    const confirmPassword = formData.get('confirmPassword');
-    const address = formData.get('address');
-    const phoneNumber = formData.get('phoneNumber');
-    const mobileNumber = formData.get('mobileNumber');
+import { useState } from 'react';
+import { POST } from '../../api-calls/apiFunctions';
 
-    const companyProfile = {
-      firstName,
-      middleName,
-      lastName,
-      companyName,
-      email,
-      website,
-      password,
-      confirmPassword,
-      address,
-      phoneNumber,
-      mobileNumber,
-    };
-    console.log('Company Profile: ', companyProfile);
+const Signup = () => {
+  const [errors, setErrors] = useState([]);
+  const [preview, setPreview] = useState(null);
+
+  const handleChangeLogo = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPreview(URL.createObjectURL(file));
+    }
   };
+
+  const handleSignUpSubmit = async (e) => {
+    setErrors(null);
+    e.preventDefault();
+
+    // ✅ Use e.target (the <form> element)
+    const formData = new FormData(e.target);
+
+    // Add fields manually if needed (though FormData can already capture them)
+    /*  const body = {
+      firstName: formData.get('firstName'),
+      middleName: formData.get('middleName'),
+      lastName: formData.get('lastName'),
+      companyWebsite: formData.get('website'),
+      companyName: formData.get('companyName'),
+      companyPhone: formData.get('phoneNumber'),
+      mobileNumber: formData.get('mobileNumber'),
+      companyEmailId: formData.get('companyEmailId'),
+      password: formData.get('password'),
+      confirmPassword: formData.get('confirmPassword'),
+      address: formData.get('address'),
+      logo: formData.get('logo').name,
+    };
+    */
+    // ✅ Add the file
+    try {
+      const response = await POST('/auth/signUp', formData);
+      alert('Registered successfully.', response);
+    } catch (error) {
+      if (error.response && error.response.status === 400) {
+        setErrors(error.response.data.messages);
+      } else {
+        setErrors(['Something is went wrong. Please check.']);
+      }
+    }
+  };
+
   return (
     <>
       <form
         onSubmit={handleSignUpSubmit}
         className="flex flex-col items-center gap-4 w-full"
+        encType="multipart/form-data"
       >
+        {errors?.length > 0 && (
+          <ul style={{ color: 'red', marginTop: '10px' }}>
+            {errors.map((err, i) => (
+              <li key={i}>{err.replace(/"/g, '')}</li> // remove Joi quotes
+            ))}
+          </ul>
+        )}
         <div className="flex flex-col md:flex-row w-full px-8 gap-4">
           <div className="flex flex-col w-full md:w-1/2 gap-2">
             <label htmlFor="firstName">First Name</label>
@@ -107,12 +133,12 @@ const Signup = () => {
 
         <div className="flex flex-col md:flex-row w-full px-8 gap-4">
           <div className="flex flex-col w-full md:w-1/2 gap-2">
-            <label htmlFor="email">Company Email (Login email)</label>
+            <label htmlFor="companyEmailId">Company Email (Login email)</label>
             <input
               type="text"
               className="border border-gray-400 rounded p-2"
-              id="email"
-              name="email"
+              id="companyEmailId"
+              name="companyEmailId"
               placeholder="Enter your email."
             />
           </div>
@@ -136,7 +162,17 @@ const Signup = () => {
               className="border border-gray-400 rounded p-2"
               id="logo"
               name="logo"
+              onChange={handleChangeLogo}
             />
+            {preview && (
+              <div className="mt-3">
+                <img
+                  src={preview}
+                  alt="Logo preview"
+                  className="w-32 h-32 object-cover rounded border"
+                />
+              </div>
+            )}
           </div>
           <div className="flex flex-col w-full md:w-1/2 gap-2">
             <label htmlFor="address">Company Address</label>
