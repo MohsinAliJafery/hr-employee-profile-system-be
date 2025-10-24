@@ -1,36 +1,20 @@
-import { useState } from 'react';
-import { POST } from '../../api-calls/apiFunctions.js';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
 
 const Login = () => {
   const [errors, setErrors] = useState([]);
-  const navigate = useNavigate();
 
-  const handleFormSubmit = async (e) => {
+  const handleFormSubmit = (e) => {
     e.preventDefault();
-
     setErrors([]);
-    const form = new FormData(e.target);
-    const email = form.get('email');
-    const password = form.get('password');
-    const body = { email, password };
-    try {
-      const response = await POST('/auth/login', body);
 
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('u_id', response.data.user.u_id);
-      navigate('/dashboard');
-    } catch (error) {
-      if (error.response && error.response.status === 400) {
-        // backend returns { messages: [] }
-        setErrors(error.response.data.messages);
-      } else if (error.response && error.response.status === 500) {
-        setErrors(error.response.data.messages); // will include actual error message
-      } else {
-        setErrors(['Something went wrong.']);
-      }
-    }
+    const form = new FormData(e.target);
+    const email = form.get("email");
+    const password = form.get("password");
+
+    // Just logging — no API call
+    console.log("Login form submitted:", { email, password });
   };
+
   return (
     <>
       <form
@@ -38,12 +22,13 @@ const Login = () => {
         className="flex flex-col items-center gap-4 w-full"
       >
         {errors?.length > 0 && (
-          <ul style={{ color: 'red', marginTop: '10px' }}>
+          <ul style={{ color: "red", marginTop: "10px" }}>
             {errors.map((err, i) => (
-              <li key={i}>{err.replace(/"/g, '')}</li> // remove Joi quotes
+              <li key={i}>{err.replace(/"/g, "")}</li>
             ))}
           </ul>
         )}
+
         <div className="flex flex-col gap-2 w-3/4">
           <input
             type="email"

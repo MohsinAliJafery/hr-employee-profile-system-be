@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { POST } from '../../api-calls/apiFunctions';
 
 const Signup = ({ onSignupSuccess }) => {
   const [errors, setErrors] = useState([]);
@@ -12,41 +11,17 @@ const Signup = ({ onSignupSuccess }) => {
     }
   };
 
-  const handleSignUpSubmit = async (e) => {
-    setErrors(null);
+  const handleSignUpSubmit = (e) => {
     e.preventDefault();
+    setErrors(null);
 
-    // ✅ Use e.target (the <form> element)
     const formData = new FormData(e.target);
 
-    // Add fields manually if needed (though FormData can already capture them)
-    /*  const body = {
-      firstName: formData.get('firstName'),
-      middleName: formData.get('middleName'),
-      lastName: formData.get('lastName'),
-      companyWebsite: formData.get('website'),
-      companyName: formData.get('companyName'),
-      companyPhone: formData.get('phoneNumber'),
-      mobileNumber: formData.get('mobileNumber'),
-      companyEmailId: formData.get('companyEmailId'),
-      password: formData.get('password'),
-      confirmPassword: formData.get('confirmPassword'),
-      address: formData.get('address'),
-      logo: formData.get('logo').name,
-    };
-    */
-    // ✅ Add the file
-    try {
-      const response = await POST('/auth/signUp', formData);
-      alert('Registered successfully.', response);
-      if (onSignupSuccess) onSignupSuccess();
-    } catch (error) {
-      if (error.response && error.response.status === 400) {
-        setErrors(error.response.data.messages);
-      } else {
-        setErrors(['Something is went wrong. Please check.']);
-      }
-    }
+    // API REMOVED — Do nothing here
+    console.log("Form Submitted", Object.fromEntries(formData));
+
+    // If you want to call onSignupSuccess after submit
+    if (onSignupSuccess) onSignupSuccess();
   };
 
   return (
@@ -59,10 +34,11 @@ const Signup = ({ onSignupSuccess }) => {
         {errors?.length > 0 && (
           <ul style={{ color: 'red', marginTop: '10px' }}>
             {errors.map((err, i) => (
-              <li key={i}>{err.replace(/"/g, '')}</li> // remove Joi quotes
+              <li key={i}>{err.replace(/"/g, '')}</li>
             ))}
           </ul>
         )}
+
         <div className="flex flex-col md:flex-row w-full px-8 gap-4">
           <div className="flex flex-col w-full md:w-1/2 gap-2">
             <label htmlFor="firstName">First Name</label>
@@ -222,4 +198,5 @@ const Signup = ({ onSignupSuccess }) => {
     </>
   );
 };
+
 export default Signup;

@@ -14,7 +14,7 @@ import {
   CartesianGrid,
 } from 'recharts';
 
-const Inde = () => {
+const Dashboard = () => {
   // ✅ Dummy Data
   const visaStatusData = [
     { name: 'Valid > 3 Months', value: 227, color: '#16a34a' },
@@ -179,4 +179,4 @@ const Inde = () => {
   );
 };
 
-export default Inde;
+export default Dashboard;
