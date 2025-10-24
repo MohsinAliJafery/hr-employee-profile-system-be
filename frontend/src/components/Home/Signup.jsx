@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { POST } from '../../api-calls/apiFunctions';
 
-const Signup = () => {
+const Signup = ({ onSignupSuccess }) => {
   const [errors, setErrors] = useState([]);
   const [preview, setPreview] = useState(null);
 
@@ -39,6 +39,7 @@ const Signup = () => {
     try {
       const response = await POST('/auth/signUp', formData);
       alert('Registered successfully.', response);
+      if (onSignupSuccess) onSignupSuccess();
     } catch (error) {
       if (error.response && error.response.status === 400) {
         setErrors(error.response.data.messages);

@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { POST } from '../../api-calls/apiFunctions.js';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
   const [errors, setErrors] = useState([]);
+  const navigate = useNavigate();
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
+
     setErrors([]);
     const form = new FormData(e.target);
     const email = form.get('email');
@@ -13,12 +16,11 @@ const Login = () => {
     const body = { email, password };
     try {
       const response = await POST('/auth/login', body);
-      console.log(response);
-      console.log('user id ', response.data.user.u_id);
+
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('u_id', response.data.user.u_id);
+      navigate('/dashboard');
     } catch (error) {
-      console.log(error);
       if (error.response && error.response.status === 400) {
         // backend returns { messages: [] }
         setErrors(error.response.data.messages);
