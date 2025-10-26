@@ -50,24 +50,24 @@ const Sidebar = () => {
               className="flex justify-between items-center w-full hover:bg-blue-700 p-2 rounded"
               onClick={() => toggleMenu('employees')}
             >
-              <span>👤 Employees</span>
+              <span>👤 Employee</span>
               {openMenu === 'employees' ? <ChevronDown /> : <ChevronRight />}
             </button>
             {openMenu === 'employees' && (
               <div className="ml-4 mt-1 space-y-2">
-                <Link
+                {/* <Link
                   to="/dashboard/employee/add"
                   className="block hover:bg-blue-700 p-2 rounded"
                   onClick={() => setIsOpen(false)}
                 >
                   ➕ Add Employee
-                </Link>
+                </Link> */}
                 <Link
                   to="/dashboard/employees"
                   className="block hover:bg-blue-700 p-2 rounded"
                   onClick={() => setIsOpen(false)}
                 >
-                  📋 Employee List
+                  📋 Employee
                 </Link>
                 <Link
                   to="/dashboard/documents"
@@ -75,6 +75,13 @@ const Sidebar = () => {
                   onClick={() => setIsOpen(false)}
                 >
                   🗂️ Documents
+                </Link>
+                 <Link
+                  to="/dashboard/prev"
+                  className="block hover:bg-blue-700 p-2 rounded"
+                  onClick={() => setIsOpen(false)}
+                >
+                  🗂️ Prev...
                 </Link>
                 <Link
                   to="/dashboard/employee/residencystatus"
