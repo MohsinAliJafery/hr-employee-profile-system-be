@@ -13,15 +13,15 @@ const storage = multer.diskStorage({
     cb(null, 'uploads/');
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
     cb(null, 'logo-' + uniqueSuffix + path.extname(file.originalname));
-  }
+  },
 });
 
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024, // 5MB limit
   },
   fileFilter: function (req, file, cb) {
     if (file.mimetype.startsWith('image/')) {
@@ -29,7 +29,7 @@ const upload = multer({
     } else {
       cb(new Error('Only image files are allowed!'), false);
     }
-  }
+  },
 });
 
 // Generate JWT Token
@@ -55,28 +55,38 @@ router.post('/signup', upload.single('logo'), async (req, res) => {
       website,
       address,
       password,
-      confirmPassword
+      confirmPassword,
+      companyLegalStatus,
+      companyType,
     } = req.body;
 
     // Validation
-    if (!firstName || !lastName || !companyName || !phoneNumber || !companyEmailId || !address || !password) {
+    if (
+      !firstName ||
+      !lastName ||
+      !companyName ||
+      !phoneNumber ||
+      !companyEmailId ||
+      !address ||
+      !password
+    ) {
       return res.status(400).json({
         success: false,
-        message: 'Please fill in all required fields'
+        message: 'Please fill in all required fields',
       });
     }
 
     if (password !== confirmPassword) {
       return res.status(400).json({
         success: false,
-        message: 'Passwords do not match'
+        message: 'Passwords do not match',
       });
     }
 
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
-        message: 'Password must be at least 6 characters'
+        message: 'Password must be at least 6 characters',
       });
     }
 
@@ -85,7 +95,7 @@ router.post('/signup', upload.single('logo'), async (req, res) => {
     if (existingUser) {
       return res.status(400).json({
         success: false,
-        message: 'User already exists with this email'
+        message: 'User already exists with this email',
       });
     }
 
@@ -107,7 +117,9 @@ router.post('/signup', upload.single('logo'), async (req, res) => {
       website,
       address,
       password,
-      logo: logoPath
+      logo: logoPath,
+      companyLegalStatus,
+      companyType,
     });
 
     // Generate token
@@ -124,31 +136,30 @@ router.post('/signup', upload.single('logo'), async (req, res) => {
         companyName: user.companyName,
         companyEmailId: user.companyEmailId,
         phoneNumber: user.phoneNumber,
-        logo: user.logo
-      }
+        logo: user.logo,
+      },
     });
-
   } catch (error) {
     console.error('Signup error:', error);
-    
+
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
-        message: 'User already exists with this email'
+        message: 'User already exists with this email',
       });
     }
 
     if (error.name === 'ValidationError') {
-      const messages = Object.values(error.errors).map(err => err.message);
+      const messages = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({
         success: false,
-        message: messages.join(', ')
+        message: messages.join(', '),
       });
     }
 
     res.status(500).json({
       success: false,
-      message: 'Server error during registration'
+      message: 'Server error during registration',
     });
   }
 });
@@ -167,27 +178,29 @@ router.post('/login', async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email and password'
+        message: 'Please provide email and password',
       });
     }
 
     // Check if user exists
-    const user = await User.findOne({ companyEmailId: email }).select('+password');
-    
+    const user = await User.findOne({ companyEmailId: email }).select(
+      '+password'
+    );
+
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'Invalid credentials',
       });
     }
 
     // Check password
     const isPasswordMatch = await user.comparePassword(password);
-    
+
     if (!isPasswordMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials'
+        message: 'Invalid credentials',
       });
     }
 
@@ -204,15 +217,14 @@ router.post('/login', async (req, res) => {
         lastName: user.lastName,
         companyName: user.companyName,
         companyEmailId: user.companyEmailId,
-        phoneNumber: user.phoneNumber
-      }
+        phoneNumber: user.phoneNumber,
+      },
     });
-
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during login'
+      message: 'Server error during login',
     });
   }
 });
@@ -234,14 +246,14 @@ router.get('/me', protect, async (req, res) => {
         companyEmailId: user.companyEmailId,
         phoneNumber: user.phoneNumber,
         website: user.website,
-        address: user.address
-      }
+        address: user.address,
+      },
     });
   } catch (error) {
     console.error('Get user error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error'
+      message: 'Server error',
     });
   }
 });
