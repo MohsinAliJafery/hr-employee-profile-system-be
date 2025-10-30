@@ -1,9 +1,9 @@
 const VisaType = require('../models/VisaType');
 
 // Get all visa types
-exports.getVisaTypes = async (req, res) => {
+const getVisaTypes = async (req, res) => {
   try {
-    const visaTypes = await VisaType.find();
+    const visaTypes = await VisaType.find().sort({ order: 1, createdAt: -1 });
     res.json(visaTypes);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch visa types' });
@@ -11,9 +11,9 @@ exports.getVisaTypes = async (req, res) => {
 };
 
 // Create new visa type
-exports.createVisaType = async (req, res) => {
+const createVisaType = async (req, res) => {
   try {
-    const { type, active = 1, isDefault = 0 } = req.body;
+    const { type, active = 1, isDefault = 0, order = 0 } = req.body;
 
     if (!type || !type.trim()) {
       return res.status(400).json({ error: 'Visa type name is required' });
@@ -37,6 +37,7 @@ exports.createVisaType = async (req, res) => {
       type: type.trim(),
       active,
       isDefault,
+      order: parseInt(order) || 0,
       employees: []
     });
 
@@ -48,10 +49,10 @@ exports.createVisaType = async (req, res) => {
 };
 
 // Update visa type
-exports.updateVisaType = async (req, res) => {
+const updateVisaType = async (req, res) => {
   try {
     const { id } = req.params;
-    const { type, active, isDefault } = req.body;
+    const { type, active, isDefault, order } = req.body;
 
     const visaType = await VisaType.findById(id);
     if (!visaType) {
@@ -80,6 +81,7 @@ exports.updateVisaType = async (req, res) => {
     if (type !== undefined) updateData.type = type.trim();
     if (active !== undefined) updateData.active = active;
     if (isDefault !== undefined) updateData.isDefault = isDefault;
+    if (order !== undefined) updateData.order = parseInt(order) || 0;
 
     const updatedVisaType = await VisaType.findByIdAndUpdate(
       id,
@@ -94,7 +96,7 @@ exports.updateVisaType = async (req, res) => {
 };
 
 // Delete visa type
-exports.deleteVisaType = async (req, res) => {
+const deleteVisaType = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -109,13 +111,20 @@ exports.deleteVisaType = async (req, res) => {
     }
 
     // Check if it's default visa type
-    if (visaType.isDefault === 1) {
-      return res.status(400).json({ error: 'Cannot delete default visa type' });
-    }
+    // if (visaType.isDefault === 1) {
+    //   return res.status(400).json({ error: 'Cannot delete default visa type' });
+    // }
 
     await VisaType.findByIdAndDelete(id);
     res.json({ message: 'Visa type deleted successfully' });
   } catch (error) {
     res.status(500).json({ error: 'Failed to delete visa type' });
   }
+};
+
+module.exports = {
+  getVisaTypes,
+  createVisaType,
+  updateVisaType,
+  deleteVisaType
 };

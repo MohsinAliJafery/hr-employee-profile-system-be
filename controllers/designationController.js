@@ -1,56 +1,53 @@
 const Designation = require('../models/Designation');
 
 // Get all designations
-exports.getDesignations = async (req, res) => {
+const getDesignations = async (req, res) => {
   try {
-    const designations = await Designation.find().sort({ createdAt: -1 });
+    const designations = await Designation.find().sort({ order: 1, createdAt: -1 });
     res.json(designations);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch designations' });
   }
 };
 
-// Get departments list
-exports.getDepartments = async (req, res) => {
-  try {
-    // You can get this from your departments collection or hardcode
-    const departments = ['IT', 'HR', 'Finance', 'Marketing', 'Operations'];
-    res.json(departments);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch departments' });
-  }
-};
-
 // Create new designation
-exports.createDesignation = async (req, res) => {
+const createDesignation = async (req, res) => {
   try {
-    const { department, title, isActive = true, isDefault = false } = req.body;
+    const { title, department, status = 1, isDefault = false, order = 0 } = req.body;
 
-    if (!department || !title) {
-      return res.status(400).json({ error: 'Department and title are required' });
+    if (!title || !title.trim()) {
+      return res.status(400).json({ error: 'Designation title is required' });
+    }
+
+    if (!department) {
+      return res.status(400).json({ error: 'Department is required' });
     }
 
     // Check for duplicate designation in the same department
     const existingDesignation = await Designation.findOne({
-      department,
-      title: { $regex: new RegExp(`^${title.trim()}$`, 'i') }
+      title: { $regex: new RegExp(`^${title.trim()}$`, 'i') },
+      department: department
     });
 
     if (existingDesignation) {
       return res.status(400).json({ error: 'Designation already exists in this department' });
     }
 
-    // If setting as default, remove default from others
+    // If setting as default, remove default from others in the same department
     if (isDefault) {
-      await Designation.updateMany({}, { isDefault: false });
+      await Designation.updateMany(
+        { department: department },
+        { isDefault: false }
+      );
     }
 
     const newDesignation = new Designation({
-      department: department.trim(),
       title: title.trim(),
-      employees: 0,
-      isActive,
-      isDefault
+      department,
+      status,
+      isDefault,
+      order: parseInt(order) || 0,
+      employees: []
     });
 
     const savedDesignation = await newDesignation.save();
@@ -64,10 +61,10 @@ exports.createDesignation = async (req, res) => {
 };
 
 // Update designation
-exports.updateDesignation = async (req, res) => {
+const updateDesignation = async (req, res) => {
   try {
     const { id } = req.params;
-    const { department, title, isActive, isDefault } = req.body;
+    const { title, department, status, isDefault, order } = req.body;
 
     const designation = await Designation.findById(id);
     if (!designation) {
@@ -75,12 +72,11 @@ exports.updateDesignation = async (req, res) => {
     }
 
     // Check for duplicate (excluding current one)
-    if ((department && department !== designation.department) || 
-        (title && title !== designation.title)) {
+    if ((title && title.trim() !== designation.title) || department !== designation.department) {
       const existingDesignation = await Designation.findOne({
         _id: { $ne: id },
-        department: department || designation.department,
-        title: { $regex: new RegExp(`^${(title || designation.title).trim()}$`, 'i') }
+        title: { $regex: new RegExp(`^${title?.trim() || designation.title}$`, 'i') },
+        department: department || designation.department
       });
 
       if (existingDesignation) {
@@ -88,17 +84,24 @@ exports.updateDesignation = async (req, res) => {
       }
     }
 
-    // If setting as default, remove default from others
+    // If setting as default, remove default from others in the same department
     if (isDefault) {
-      await Designation.updateMany({ _id: { $ne: id } }, { isDefault: false });
+      await Designation.updateMany(
+        { 
+          department: department || designation.department,
+          _id: { $ne: id }
+        },
+        { isDefault: false }
+      );
     }
 
     // Update fields
     const updateData = {};
-    if (department !== undefined) updateData.department = department.trim();
     if (title !== undefined) updateData.title = title.trim();
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (department !== undefined) updateData.department = department;
+    if (status !== undefined) updateData.status = status;
     if (isDefault !== undefined) updateData.isDefault = isDefault;
+    if (order !== undefined) updateData.order = parseInt(order) || 0;
 
     const updatedDesignation = await Designation.findByIdAndUpdate(
       id,
@@ -116,7 +119,7 @@ exports.updateDesignation = async (req, res) => {
 };
 
 // Delete designation
-exports.deleteDesignation = async (req, res) => {
+const deleteDesignation = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -126,13 +129,8 @@ exports.deleteDesignation = async (req, res) => {
     }
 
     // Check if designation has employees
-    if (designation.employees > 0) {
+    if (designation.employees.length > 0) {
       return res.status(400).json({ error: 'Cannot delete designation with assigned employees' });
-    }
-
-    // Check if it's default designation
-    if (designation.isDefault) {
-      return res.status(400).json({ error: 'Cannot delete default designation' });
     }
 
     await Designation.findByIdAndDelete(id);
@@ -143,7 +141,7 @@ exports.deleteDesignation = async (req, res) => {
 };
 
 // Toggle designation status
-exports.toggleStatus = async (req, res) => {
+const toggleStatus = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -152,11 +150,94 @@ exports.toggleStatus = async (req, res) => {
       return res.status(404).json({ error: 'Designation not found' });
     }
 
-    designation.isActive = !designation.isActive;
-    const updatedDesignation = await designation.save();
+    // Toggle status (1 to 0, 0 to 1)
+    const newStatus = designation.status === 1 ? 0 : 1;
+    
+    const updatedDesignation = await Designation.findByIdAndUpdate(
+      id,
+      { status: newStatus },
+      { new: true }
+    );
 
     res.json(updatedDesignation);
   } catch (error) {
     res.status(500).json({ error: 'Failed to toggle designation status' });
   }
+};
+
+// Add employee to designation
+const addEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { employeeName } = req.body;
+
+    if (!employeeName || !employeeName.trim()) {
+      return res.status(400).json({ error: 'Employee name is required' });
+    }
+
+    const designation = await Designation.findById(id);
+    if (!designation) {
+      return res.status(404).json({ error: 'Designation not found' });
+    }
+
+    // Check if employee already exists in this designation
+    if (designation.employees.includes(employeeName.trim())) {
+      return res.status(400).json({ error: 'Employee already exists in this designation' });
+    }
+
+    designation.employees.push(employeeName.trim());
+    const updatedDesignation = await designation.save();
+
+    res.json(updatedDesignation);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add employee to designation' });
+  }
+};
+
+// Remove employee from designation
+const removeEmployee = async (req, res) => {
+  try {
+    const { id, employeeName } = req.params;
+
+    const designation = await Designation.findById(id);
+    if (!designation) {
+      return res.status(404).json({ error: 'Designation not found' });
+    }
+
+    designation.employees = designation.employees.filter(
+      emp => emp !== employeeName
+    );
+
+    const updatedDesignation = await designation.save();
+    res.json(updatedDesignation);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove employee from designation' });
+  }
+};
+
+// Get designations by department
+const getDesignationsByDepartment = async (req, res) => {
+  try {
+    const { department } = req.params;
+    
+    const designations = await Designation.find({ 
+      department: department,
+      status: 1 
+    }).sort({ order: 1, title: 1 });
+
+    res.json(designations);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch designations for department' });
+  }
+};
+
+module.exports = {
+  getDesignations,
+  createDesignation,
+  updateDesignation,
+  deleteDesignation,
+  toggleStatus,
+  addEmployee,
+  removeEmployee,
+  getDesignationsByDepartment
 };

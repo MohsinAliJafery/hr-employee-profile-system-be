@@ -14,6 +14,10 @@ const visaTypeSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  order: {
+    type: Number,
+    default: 0
+  },
   employees: [{
     type: String
   }]
@@ -21,4 +25,6 @@ const visaTypeSchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('VisaType', visaTypeSchema);
+const VisaType = mongoose.model('VisaType', visaTypeSchema);
+
+module.exports = VisaType;

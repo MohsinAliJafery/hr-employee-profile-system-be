@@ -1,15 +1,15 @@
 const mongoose = require('mongoose');
 
-const departmentSchema = new mongoose.Schema({
+const nationalitySchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    unique: true,
-    trim: true
+    trim: true,
+    unique: true
   },
   status: {
     type: Number,
-    default: 1
+    default: 1 // 1 = Active, 0 = Inactive
   },
   isDefault: {
     type: Boolean,
@@ -19,13 +19,13 @@ const departmentSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
-  employees: [{
+  citizens: [{
     type: String
   }]
 }, {
   timestamps: true
 });
 
-const Department = mongoose.model('Department', departmentSchema);
+const Nationality = mongoose.model('Nationality', nationalitySchema);
 
-module.exports = Department;
+module.exports = Nationality;

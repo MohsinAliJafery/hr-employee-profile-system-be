@@ -2,21 +2,21 @@ const City = require('../models/City');
 const Country = require('../models/Country');
 
 // Get all cities with country details
-exports.getCities = async (req, res) => {
+const getCities = async (req, res) => {
   try {
     const cities = await City.find()
       .populate('countryId', 'name')
-      .sort({ createdAt: -1 });
+      .sort({ order: 1, createdAt: -1 });
     res.json(cities);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch cities' });
   }
 };
 
-// Get countries for dropdown
-exports.getCountries = async (req, res) => {
+// Get all countries for dropdown
+const getCountries = async (req, res) => {
   try {
-    const countries = await Country.find({ isActive: true }).select('name');
+    const countries = await Country.find({ status: 1 }).sort({ name: 1 });
     res.json(countries);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch countries' });
@@ -24,47 +24,45 @@ exports.getCountries = async (req, res) => {
 };
 
 // Create new city
-exports.createCity = async (req, res) => {
+const createCity = async (req, res) => {
   try {
-    const { name, countryId, isActive = true, isDefault = false } = req.body;
+    const { name, countryId, status = 1, isDefault = false, order = 0 } = req.body;
 
-    if (!name || !countryId) {
-      return res.status(400).json({ error: 'City name and country are required' });
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: 'City name is required' });
     }
 
-    // Check if country exists
-    const country = await Country.findById(countryId);
-    if (!country) {
-      return res.status(400).json({ error: 'Country not found' });
+    if (!countryId) {
+      return res.status(400).json({ error: 'Country is required' });
     }
 
-    // Check for duplicate city in the same country
+    // Check for duplicate city name in the same country
     const existingCity = await City.findOne({
       name: { $regex: new RegExp(`^${name.trim()}$`, 'i') },
-      countryId
+      countryId: countryId
     });
 
     if (existingCity) {
       return res.status(400).json({ error: 'City already exists in this country' });
     }
 
-    // If setting as default, remove default from others in the same country
+    // If setting as default, remove default from others
     if (isDefault) {
-      await City.updateMany({ countryId }, { isDefault: false });
+      await City.updateMany({}, { isDefault: false });
     }
 
     const newCity = new City({
       name: name.trim(),
       countryId,
-      employees: [],
-      isActive,
-      isDefault
+      status,
+      isDefault,
+      order: parseInt(order) || 0,
+      employees: []
     });
 
     const savedCity = await newCity.save();
-    
-    // Populate country name for response
     const populatedCity = await City.findById(savedCity._id).populate('countryId', 'name');
+    
     res.status(201).json(populatedCity);
   } catch (error) {
     if (error.code === 11000) {
@@ -75,29 +73,21 @@ exports.createCity = async (req, res) => {
 };
 
 // Update city
-exports.updateCity = async (req, res) => {
+const updateCity = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, countryId, isActive, isDefault } = req.body;
+    const { name, countryId, status, isDefault, order } = req.body;
 
     const city = await City.findById(id);
     if (!city) {
       return res.status(404).json({ error: 'City not found' });
     }
 
-    // Check if new country exists
-    if (countryId) {
-      const country = await Country.findById(countryId);
-      if (!country) {
-        return res.status(400).json({ error: 'Country not found' });
-      }
-    }
-
     // Check for duplicate (excluding current one)
-    if ((name && name !== city.name) || (countryId && countryId !== city.countryId.toString())) {
+    if ((name && name.trim() !== city.name) || countryId !== city.countryId.toString()) {
       const existingCity = await City.findOne({
         _id: { $ne: id },
-        name: { $regex: new RegExp(`^${(name || city.name).trim()}$`, 'i') },
+        name: { $regex: new RegExp(`^${name?.trim() || city.name}$`, 'i') },
         countryId: countryId || city.countryId
       });
 
@@ -106,21 +96,18 @@ exports.updateCity = async (req, res) => {
       }
     }
 
-    // If setting as default, remove default from others in the same country
+    // If setting as default, remove default from others
     if (isDefault) {
-      const targetCountryId = countryId || city.countryId;
-      await City.updateMany(
-        { _id: { $ne: id }, countryId: targetCountryId },
-        { isDefault: false }
-      );
+      await City.updateMany({ _id: { $ne: id } }, { isDefault: false });
     }
 
     // Update fields
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
     if (countryId !== undefined) updateData.countryId = countryId;
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (status !== undefined) updateData.status = status;
     if (isDefault !== undefined) updateData.isDefault = isDefault;
+    if (order !== undefined) updateData.order = parseInt(order) || 0;
 
     const updatedCity = await City.findByIdAndUpdate(
       id,
@@ -138,7 +125,7 @@ exports.updateCity = async (req, res) => {
 };
 
 // Delete city
-exports.deleteCity = async (req, res) => {
+const deleteCity = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -165,7 +152,7 @@ exports.deleteCity = async (req, res) => {
 };
 
 // Toggle city status
-exports.toggleStatus = async (req, res) => {
+const toggleStatus = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -174,23 +161,28 @@ exports.toggleStatus = async (req, res) => {
       return res.status(404).json({ error: 'City not found' });
     }
 
-    city.isActive = !city.isActive;
-    const updatedCity = await city.save();
-    const populatedCity = await City.findById(updatedCity._id).populate('countryId', 'name');
+    // Toggle status (1 to 0, 0 to 1)
+    const newStatus = city.status === 1 ? 0 : 1;
+    
+    const updatedCity = await City.findByIdAndUpdate(
+      id,
+      { status: newStatus },
+      { new: true }
+    ).populate('countryId', 'name');
 
-    res.json(populatedCity);
+    res.json(updatedCity);
   } catch (error) {
     res.status(500).json({ error: 'Failed to toggle city status' });
   }
 };
 
 // Add employee to city
-exports.addEmployee = async (req, res) => {
+const addEmployee = async (req, res) => {
   try {
     const { id } = req.params;
     const { employeeName } = req.body;
 
-    if (!employeeName) {
+    if (!employeeName || !employeeName.trim()) {
       return res.status(400).json({ error: 'Employee name is required' });
     }
 
@@ -199,23 +191,22 @@ exports.addEmployee = async (req, res) => {
       return res.status(404).json({ error: 'City not found' });
     }
 
-    // Check if employee already exists
-    if (city.employees.includes(employeeName)) {
+    // Check if employee already exists in this city
+    if (city.employees.includes(employeeName.trim())) {
       return res.status(400).json({ error: 'Employee already exists in this city' });
     }
 
-    city.employees.push(employeeName);
+    city.employees.push(employeeName.trim());
     const updatedCity = await city.save();
-    const populatedCity = await City.findById(updatedCity._id).populate('countryId', 'name');
 
-    res.json(populatedCity);
+    res.json(updatedCity);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to add employee' });
+    res.status(500).json({ error: 'Failed to add employee to city' });
   }
 };
 
 // Remove employee from city
-exports.removeEmployee = async (req, res) => {
+const removeEmployee = async (req, res) => {
   try {
     const { id, employeeName } = req.params;
 
@@ -224,12 +215,43 @@ exports.removeEmployee = async (req, res) => {
       return res.status(404).json({ error: 'City not found' });
     }
 
-    city.employees = city.employees.filter(emp => emp !== employeeName);
-    const updatedCity = await city.save();
-    const populatedCity = await City.findById(updatedCity._id).populate('countryId', 'name');
+    city.employees = city.employees.filter(
+      emp => emp !== employeeName
+    );
 
-    res.json(populatedCity);
+    const updatedCity = await city.save();
+    res.json(updatedCity);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to remove employee' });
+    res.status(500).json({ error: 'Failed to remove employee from city' });
   }
+};
+
+// Get cities by country
+const getCitiesByCountry = async (req, res) => {
+  try {
+    const { countryId } = req.params;
+    
+    const cities = await City.find({ 
+      countryId: countryId,
+      status: 1 
+    })
+    .populate('countryId', 'name')
+    .sort({ order: 1, name: 1 });
+
+    res.json(cities);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch cities for country' });
+  }
+};
+
+module.exports = {
+  getCities,
+  getCountries,
+  createCity,
+  updateCity,
+  deleteCity,
+  toggleStatus,
+  addEmployee,
+  removeEmployee,
+  getCitiesByCountry
 };

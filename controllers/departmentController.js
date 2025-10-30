@@ -1,9 +1,9 @@
 const Department = require('../models/Department');
 
 // Get all departments
-exports.getDepartments = async (req, res) => {
+const getDepartments = async (req, res) => {
   try {
-    const departments = await Department.find().sort({ createdAt: -1 });
+    const departments = await Department.find().sort({ order: 1, createdAt: -1 });
     res.json(departments);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch departments' });
@@ -11,9 +11,9 @@ exports.getDepartments = async (req, res) => {
 };
 
 // Create new department
-exports.createDepartment = async (req, res) => {
+const createDepartment = async (req, res) => {
   try {
-    const { name, isDefault = false } = req.body;
+    const { name, isDefault = false, order = 0 } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Department name is required' });
@@ -35,9 +35,10 @@ exports.createDepartment = async (req, res) => {
 
     const newDepartment = new Department({
       name: name.trim(),
+      isDefault,
+      order: parseInt(order) || 0,
       employees: [],
-      status: 1,
-      isDefault
+      status: 1
     });
 
     const savedDepartment = await newDepartment.save();
@@ -48,10 +49,10 @@ exports.createDepartment = async (req, res) => {
 };
 
 // Update department
-exports.updateDepartment = async (req, res) => {
+const updateDepartment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, status, isDefault } = req.body;
+    const { name, status, isDefault, order } = req.body;
 
     const department = await Department.findById(id);
     if (!department) {
@@ -80,6 +81,7 @@ exports.updateDepartment = async (req, res) => {
     if (name !== undefined) updateData.name = name.trim();
     if (status !== undefined) updateData.status = status;
     if (isDefault !== undefined) updateData.isDefault = isDefault;
+    if (order !== undefined) updateData.order = parseInt(order) || 0;
 
     const updatedDepartment = await Department.findByIdAndUpdate(
       id,
@@ -94,7 +96,7 @@ exports.updateDepartment = async (req, res) => {
 };
 
 // Delete department
-exports.deleteDepartment = async (req, res) => {
+const deleteDepartment = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -108,11 +110,6 @@ exports.deleteDepartment = async (req, res) => {
       return res.status(400).json({ error: 'Cannot delete department with assigned employees' });
     }
 
-    // Check if it's default department
-    if (department.isDefault) {
-      return res.status(400).json({ error: 'Cannot delete default department' });
-    }
-
     await Department.findByIdAndDelete(id);
     res.json({ message: 'Department deleted successfully' });
   } catch (error) {
@@ -121,7 +118,7 @@ exports.deleteDepartment = async (req, res) => {
 };
 
 // Toggle department status
-exports.toggleStatus = async (req, res) => {
+const toggleStatus = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -130,11 +127,77 @@ exports.toggleStatus = async (req, res) => {
       return res.status(404).json({ error: 'Department not found' });
     }
 
-    department.status = department.status === 1 ? 0 : 1;
-    const updatedDepartment = await department.save();
+    // Toggle status (1 to 0, 0 to 1)
+    const newStatus = department.status === 1 ? 0 : 1;
+    
+    const updatedDepartment = await Department.findByIdAndUpdate(
+      id,
+      { status: newStatus },
+      { new: true }
+    );
 
     res.json(updatedDepartment);
   } catch (error) {
     res.status(500).json({ error: 'Failed to toggle department status' });
   }
+};
+
+// Add employee to department
+const addEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { employeeName } = req.body;
+
+    if (!employeeName || !employeeName.trim()) {
+      return res.status(400).json({ error: 'Employee name is required' });
+    }
+
+    const department = await Department.findById(id);
+    if (!department) {
+      return res.status(404).json({ error: 'Department not found' });
+    }
+
+    // Check if employee already exists in this department
+    if (department.employees.includes(employeeName.trim())) {
+      return res.status(400).json({ error: 'Employee already exists in this department' });
+    }
+
+    department.employees.push(employeeName.trim());
+    const updatedDepartment = await department.save();
+
+    res.json(updatedDepartment);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add employee to department' });
+  }
+};
+
+// Remove employee from department
+const removeEmployee = async (req, res) => {
+  try {
+    const { id, employeeName } = req.params;
+
+    const department = await Department.findById(id);
+    if (!department) {
+      return res.status(404).json({ error: 'Department not found' });
+    }
+
+    department.employees = department.employees.filter(
+      emp => emp !== employeeName
+    );
+
+    const updatedDepartment = await department.save();
+    res.json(updatedDepartment);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove employee from department' });
+  }
+};
+
+module.exports = {
+  getDepartments,
+  createDepartment,
+  updateDepartment,
+  deleteDepartment,
+  toggleStatus,
+  addEmployee,
+  removeEmployee
 };

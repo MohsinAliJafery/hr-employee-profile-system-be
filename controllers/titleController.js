@@ -1,9 +1,9 @@
 const Title = require('../models/Title');
 
 // Get all titles
-exports.getTitles = async (req, res) => {
+const getTitles = async (req, res) => {
   try {
-    const titles = await Title.find().sort({ createdAt: -1 });
+    const titles = await Title.find().sort({ order: 1, createdAt: -1 });
     res.json(titles);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch titles' });
@@ -11,15 +11,15 @@ exports.getTitles = async (req, res) => {
 };
 
 // Create new title
-exports.createTitle = async (req, res) => {
+const createTitle = async (req, res) => {
   try {
-    const { title, isActive = true, isDefault = false } = req.body;
+    const { title, status = 1, isDefault = false, order = 0 } = req.body;
 
     if (!title || !title.trim()) {
       return res.status(400).json({ error: 'Title is required' });
     }
 
-    // Check for duplicate title
+    // Check for duplicate
     const existingTitle = await Title.findOne({ 
       title: { $regex: new RegExp(`^${title.trim()}$`, 'i') } 
     });
@@ -35,8 +35,10 @@ exports.createTitle = async (req, res) => {
 
     const newTitle = new Title({
       title: title.trim(),
-      isActive,
-      isDefault
+      status,
+      isDefault,
+      order: parseInt(order) || 0,
+      employees: []
     });
 
     const savedTitle = await newTitle.save();
@@ -50,10 +52,10 @@ exports.createTitle = async (req, res) => {
 };
 
 // Update title
-exports.updateTitle = async (req, res) => {
+const updateTitle = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, isActive, isDefault } = req.body;
+    const { title, status, isDefault, order } = req.body;
 
     const titleDoc = await Title.findById(id);
     if (!titleDoc) {
@@ -80,8 +82,9 @@ exports.updateTitle = async (req, res) => {
     // Update fields
     const updateData = {};
     if (title !== undefined) updateData.title = title.trim();
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (status !== undefined) updateData.status = status;
     if (isDefault !== undefined) updateData.isDefault = isDefault;
+    if (order !== undefined) updateData.order = parseInt(order) || 0;
 
     const updatedTitle = await Title.findByIdAndUpdate(
       id,
@@ -99,13 +102,18 @@ exports.updateTitle = async (req, res) => {
 };
 
 // Delete title
-exports.deleteTitle = async (req, res) => {
+const deleteTitle = async (req, res) => {
   try {
     const { id } = req.params;
 
     const title = await Title.findById(id);
     if (!title) {
       return res.status(404).json({ error: 'Title not found' });
+    }
+
+    // Check if title has employees
+    if (title.employees.length > 0) {
+      return res.status(400).json({ error: 'Cannot delete title with assigned employees' });
     }
 
     // Check if it's default title
@@ -121,7 +129,7 @@ exports.deleteTitle = async (req, res) => {
 };
 
 // Toggle title status
-exports.toggleStatus = async (req, res) => {
+const toggleStatus = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -130,11 +138,77 @@ exports.toggleStatus = async (req, res) => {
       return res.status(404).json({ error: 'Title not found' });
     }
 
-    title.isActive = !title.isActive;
-    const updatedTitle = await title.save();
+    // Toggle status (1 to 0, 0 to 1)
+    const newStatus = title.status === 1 ? 0 : 1;
+    
+    const updatedTitle = await Title.findByIdAndUpdate(
+      id,
+      { status: newStatus },
+      { new: true }
+    );
 
     res.json(updatedTitle);
   } catch (error) {
     res.status(500).json({ error: 'Failed to toggle title status' });
   }
+};
+
+// Add employee to title
+const addEmployee = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { employeeName } = req.body;
+
+    if (!employeeName || !employeeName.trim()) {
+      return res.status(400).json({ error: 'Employee name is required' });
+    }
+
+    const title = await Title.findById(id);
+    if (!title) {
+      return res.status(404).json({ error: 'Title not found' });
+    }
+
+    // Check if employee already exists in this title
+    if (title.employees.includes(employeeName.trim())) {
+      return res.status(400).json({ error: 'Employee already exists in this title' });
+    }
+
+    title.employees.push(employeeName.trim());
+    const updatedTitle = await title.save();
+
+    res.json(updatedTitle);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to add employee to title' });
+  }
+};
+
+// Remove employee from title
+const removeEmployee = async (req, res) => {
+  try {
+    const { id, employeeName } = req.params;
+
+    const title = await Title.findById(id);
+    if (!title) {
+      return res.status(404).json({ error: 'Title not found' });
+    }
+
+    title.employees = title.employees.filter(
+      emp => emp !== employeeName
+    );
+
+    const updatedTitle = await title.save();
+    res.json(updatedTitle);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to remove employee from title' });
+  }
+};
+
+module.exports = {
+  getTitles,
+  createTitle,
+  updateTitle,
+  deleteTitle,
+  toggleStatus,
+  addEmployee,
+  removeEmployee
 };

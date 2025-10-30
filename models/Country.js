@@ -7,13 +7,17 @@ const countrySchema = new mongoose.Schema({
     unique: true,
     trim: true
   },
-  isActive: {
-    type: Boolean,
-    default: true
+  status: {
+    type: Number,
+    default: 1 // 1 = Active, 0 = Inactive
   },
   isDefault: {
     type: Boolean,
     default: false
+  },
+  order: {
+    type: Number,
+    default: 0
   },
   employees: [{
     type: String
@@ -22,4 +26,6 @@ const countrySchema = new mongoose.Schema({
   timestamps: true
 });
 
-module.exports = mongoose.model('Country', countrySchema);
+const Country = mongoose.model('Country', countrySchema);
+
+module.exports = Country;

@@ -11,22 +11,28 @@ const citySchema = new mongoose.Schema({
     ref: 'Country',
     required: true
   },
-  employees: [{
-    type: String
-  }],
-  isActive: {
-    type: Boolean,
-    default: true
+  status: {
+    type: Number,
+    default: 1 // 1 = Active, 0 = Inactive
   },
   isDefault: {
     type: Boolean,
     default: false
-  }
+  },
+  order: {
+    type: Number,
+    default: 0
+  },
+  employees: [{
+    type: String
+  }]
 }, {
   timestamps: true
 });
 
-// Compound index to ensure unique city names per country
+// Compound index to ensure unique city name per country
 citySchema.index({ name: 1, countryId: 1 }, { unique: true });
 
-module.exports = mongoose.model('City', citySchema);
+const City = mongoose.model('City', citySchema);
+
+module.exports = City;

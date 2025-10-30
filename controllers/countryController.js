@@ -1,9 +1,9 @@
 const Country = require('../models/Country');
 
 // Get all countries
-exports.getCountries = async (req, res) => {
+const getCountries = async (req, res) => {
   try {
-    const countries = await Country.find().sort({ createdAt: -1 });
+    const countries = await Country.find().sort({ order: 1, createdAt: -1 });
     res.json(countries);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch countries' });
@@ -11,15 +11,15 @@ exports.getCountries = async (req, res) => {
 };
 
 // Create new country
-exports.createCountry = async (req, res) => {
+const createCountry = async (req, res) => {
   try {
-    const { name, isActive = true, isDefault = false } = req.body;
+    const { name, status = 1, isDefault = false, order = 0 } = req.body;
 
     if (!name || !name.trim()) {
       return res.status(400).json({ error: 'Country name is required' });
     }
 
-    // Check for duplicate country
+    // Check for duplicate
     const existingCountry = await Country.findOne({ 
       name: { $regex: new RegExp(`^${name.trim()}$`, 'i') } 
     });
@@ -35,8 +35,9 @@ exports.createCountry = async (req, res) => {
 
     const newCountry = new Country({
       name: name.trim(),
-      isActive,
+      status,
       isDefault,
+      order: parseInt(order) || 0,
       employees: []
     });
 
@@ -51,10 +52,10 @@ exports.createCountry = async (req, res) => {
 };
 
 // Update country
-exports.updateCountry = async (req, res) => {
+const updateCountry = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, isActive, isDefault } = req.body;
+    const { name, status, isDefault, order } = req.body;
 
     const country = await Country.findById(id);
     if (!country) {
@@ -81,8 +82,9 @@ exports.updateCountry = async (req, res) => {
     // Update fields
     const updateData = {};
     if (name !== undefined) updateData.name = name.trim();
-    if (isActive !== undefined) updateData.isActive = isActive;
+    if (status !== undefined) updateData.status = status;
     if (isDefault !== undefined) updateData.isDefault = isDefault;
+    if (order !== undefined) updateData.order = parseInt(order) || 0;
 
     const updatedCountry = await Country.findByIdAndUpdate(
       id,
@@ -100,7 +102,7 @@ exports.updateCountry = async (req, res) => {
 };
 
 // Delete country
-exports.deleteCountry = async (req, res) => {
+const deleteCountry = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -127,7 +129,7 @@ exports.deleteCountry = async (req, res) => {
 };
 
 // Toggle country status
-exports.toggleStatus = async (req, res) => {
+const toggleStatus = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -136,8 +138,14 @@ exports.toggleStatus = async (req, res) => {
       return res.status(404).json({ error: 'Country not found' });
     }
 
-    country.isActive = !country.isActive;
-    const updatedCountry = await country.save();
+    // Toggle status (1 to 0, 0 to 1)
+    const newStatus = country.status === 1 ? 0 : 1;
+    
+    const updatedCountry = await Country.findByIdAndUpdate(
+      id,
+      { status: newStatus },
+      { new: true }
+    );
 
     res.json(updatedCountry);
   } catch (error) {
@@ -146,12 +154,12 @@ exports.toggleStatus = async (req, res) => {
 };
 
 // Add employee to country
-exports.addEmployee = async (req, res) => {
+const addEmployee = async (req, res) => {
   try {
     const { id } = req.params;
     const { employeeName } = req.body;
 
-    if (!employeeName) {
+    if (!employeeName || !employeeName.trim()) {
       return res.status(400).json({ error: 'Employee name is required' });
     }
 
@@ -160,22 +168,22 @@ exports.addEmployee = async (req, res) => {
       return res.status(404).json({ error: 'Country not found' });
     }
 
-    // Check if employee already exists
-    if (country.employees.includes(employeeName)) {
+    // Check if employee already exists in this country
+    if (country.employees.includes(employeeName.trim())) {
       return res.status(400).json({ error: 'Employee already exists in this country' });
     }
 
-    country.employees.push(employeeName);
+    country.employees.push(employeeName.trim());
     const updatedCountry = await country.save();
 
     res.json(updatedCountry);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to add employee' });
+    res.status(500).json({ error: 'Failed to add employee to country' });
   }
 };
 
 // Remove employee from country
-exports.removeEmployee = async (req, res) => {
+const removeEmployee = async (req, res) => {
   try {
     const { id, employeeName } = req.params;
 
@@ -184,11 +192,23 @@ exports.removeEmployee = async (req, res) => {
       return res.status(404).json({ error: 'Country not found' });
     }
 
-    country.employees = country.employees.filter(emp => emp !== employeeName);
-    const updatedCountry = await country.save();
+    country.employees = country.employees.filter(
+      emp => emp !== employeeName
+    );
 
+    const updatedCountry = await country.save();
     res.json(updatedCountry);
   } catch (error) {
-    res.status(500).json({ error: 'Failed to remove employee' });
+    res.status(500).json({ error: 'Failed to remove employee from country' });
   }
+};
+
+module.exports = {
+  getCountries,
+  createCountry,
+  updateCountry,
+  deleteCountry,
+  toggleStatus,
+  addEmployee,
+  removeEmployee
 };

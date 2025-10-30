@@ -8,6 +8,9 @@ const designationRoutes = require('./routes/designations');
 const titleRoutes = require('./routes/titles');
 const countryRoutes = require('./routes/countries'); 
 const cityRoutes = require('./routes/cities');
+const nationalityRoutes = require('./routes/nationalities');
+const qualificationRoutes = require('./routes/qualifications');
+const placesRoutes = require('./routes/places');
 
 // Load env vars
 dotenv.config();
@@ -37,13 +40,17 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/employees', require('./routes/employee'));
+app.use('/api/employees', require('./routes/employees'));
 app.use('/api/visa-types', visaTypeRoutes);
 app.use('/api/departments', departmentRoutes);
 app.use('/api/designations', designationRoutes);
 app.use('/api/titles', titleRoutes);
 app.use('/api/countries', countryRoutes);
 app.use('/api/cities', cityRoutes); 
+app.use('/api/nationalities', nationalityRoutes); 
+app.use('/api/qualifications', qualificationRoutes); 
+app.use('/api/places', placesRoutes);
+app.use('/api/employee-status', require('./routes/employee-status'));
 
 // Basic route
 app.get('/', (req, res) => {
