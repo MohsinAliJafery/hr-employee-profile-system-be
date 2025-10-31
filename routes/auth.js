@@ -155,8 +155,6 @@ router.post('/signup', upload.single('logo'), async (req, res) => {
   }
 });
 
-// Add this to serve uploaded files
-router.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // @desc    Login user
 // @route   POST /api/auth/login
