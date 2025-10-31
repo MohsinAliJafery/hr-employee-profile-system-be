@@ -387,6 +387,34 @@ router.delete('/:id', protect, async (req, res) => {
   }
 });
 
+// Get employee by ID
+router.get('/:id', protect, async (req, res) => {
+  try {
+    const employee = await Employee.findOne({
+      _id: req.params.id,
+      createdBy: req.user.id
+    });
+
+    if (!employee) {
+      return res.status(404).json({
+        success: false,
+        message: 'Employee not found',
+      });
+    }
+
+    res.json({
+      success: true,
+      data: employee,
+    });
+  } catch (error) {
+    console.error('❌ Get employee by ID error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error while fetching employee',
+    });
+  }
+});
+
 // Add this to serve uploaded files
 router.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
