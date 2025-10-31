@@ -37,6 +37,7 @@ const nextOfKinSchema = new mongoose.Schema({
   city: { type: String, required: true},
   country: { type: String, required: true },
   phoneNumber: { type: String, required: true },
+  employeeStatus: { type: String, required: true },
   alternatePhoneNumber: { type: String },
   email: { type: String, required:true },
   occupation: { type: String },
